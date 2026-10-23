@@ -1,20 +1,23 @@
 /**
  * LazyChef & Pantry Autopilot - Application Entry Point & Main Loop
- * Wires PantryInput, RecipeCard, and DeterministicSlothEngine for Phase 1 MVP.
+ * Integrates WebGPU background streaming, SlothInferenceManager,
+ * Header, PantryInput, RecipeCard, and LazyPayoffDashboard.
  */
 
-import confetti from 'canvas-confetti';
+import { Header } from './components/Header';
 import { PantryInput } from './components/PantryInput';
 import { RecipeCard } from './components/RecipeCard';
-import { DeterministicSlothEngine } from './core/heuristic-engine';
-import { LocalStorageStore } from './storage/local-storage';
-import { LazyRecipe } from './types/recipe';
+import { LazyPayoffDashboard } from './components/LazyPayoffDashboard';
+import { SlothInferenceManager } from './core/inference-manager';
 
 class LazyChefApp {
   private appRoot: HTMLElement;
+  private header: Header;
   private pantryInput: PantryInput;
   private recipeCard: RecipeCard;
+  private payoffDashboard: LazyPayoffDashboard;
   private cookButton: HTMLButtonElement;
+  private inferenceManager: SlothInferenceManager;
 
   constructor() {
     const root = document.getElementById('app');
@@ -23,23 +26,37 @@ class LazyChefApp {
     }
     this.appRoot = root;
 
-    // Initialize Header
-    const header = this.createHeader();
+    // 1. Initialize Inference Manager & Header
+    this.inferenceManager = SlothInferenceManager.getInstance();
+    this.header = new Header();
 
-    // Initialize Components
+    this.inferenceManager.onStatusChange((status) => {
+      this.header.updateStatus(status);
+    });
+
+    this.inferenceManager.onProgressChange((progress) => {
+      this.header.updateProgress(progress);
+    });
+
+    // 2. Initialize UI Components
     this.pantryInput = new PantryInput({
       onSelectionChange: (selectedIds) => {
         this.updateCookButtonState(selectedIds.length);
       }
     });
 
+    this.payoffDashboard = new LazyPayoffDashboard();
+
     this.recipeCard = new RecipeCard({
-      onMealCooked: (recipe) => {
-        this.handleMealCompleted(recipe);
+      onMealCooked: (_recipe, summary) => {
+        this.payoffDashboard.updateSummary(summary);
+      },
+      onCookAnother: () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     });
 
-    // Initialize CTA Button Container
+    // 3. Initialize Primary CTA Button
     const ctaContainer = document.createElement('div');
     ctaContainer.className = 'cta-container';
 
@@ -47,37 +64,22 @@ class LazyChefApp {
     this.cookButton.type = 'button';
     this.cookButton.className = 'btn-cook-lazily';
     this.cookButton.innerHTML = '<span>Cook Lazily</span> <span>🦥</span>';
-    this.cookButton.addEventListener('click', () => this.handleCookClick());
+    this.cookButton.addEventListener('click', () => void this.handleCookClick());
 
     ctaContainer.appendChild(this.cookButton);
 
-    // Mount to DOM
-    this.appRoot.appendChild(header);
+    // 4. Mount Components to DOM
+    this.appRoot.appendChild(this.header.getElement());
     this.appRoot.appendChild(this.pantryInput.getElement());
     this.appRoot.appendChild(ctaContainer);
     this.appRoot.appendChild(this.recipeCard.getElement());
+    this.appRoot.appendChild(this.payoffDashboard.getElement());
 
-    // Initial Button State
+    // 5. Initial Button State
     this.updateCookButtonState(this.pantryInput.getSelectedIngredients().length);
-  }
 
-  private createHeader(): HTMLElement {
-    const header = document.createElement('header');
-    header.className = 'app-header';
-    header.innerHTML = `
-      <div class="brand-group">
-        <div class="brand-mascot" title="International Sloth Day - Zero Stress Cooking">🦥</div>
-        <div class="brand-text">
-          <h1>LazyChef & Pantry Autopilot</h1>
-          <p class="brand-subtitle">Sloth Constraints: 1 Vessel • ≤3 Steps • ≤15 Minutes</p>
-        </div>
-      </div>
-      <div class="engine-status-badge">
-        <span class="status-dot"></span>
-        <span>Instant Offline Engine 🦥 (&lt;15ms)</span>
-      </div>
-    `;
-    return header;
+    // 6. Initiate Silent Background WebGPU Weight Streaming (ADR-0001)
+    void this.inferenceManager.initBackgroundPipeline();
   }
 
   private updateCookButtonState(selectedCount: number): void {
@@ -90,49 +92,32 @@ class LazyChefApp {
     }
   }
 
-  private handleCookClick(): void {
+  private async handleCookClick(): Promise<void> {
     const selectedIngredients = this.pantryInput.getSelectedIngredients();
     const urgencyItems = this.pantryInput.getUrgencyIngredients();
 
     if (selectedIngredients.length === 0) return;
 
-    // Generate recipe deterministically in <15ms
-    const { recipe, latencyMs } = DeterministicSlothEngine.generate(
-      selectedIngredients,
-      urgencyItems
-    );
+    this.cookButton.disabled = true;
+    const originalText = this.cookButton.innerHTML;
+    this.cookButton.innerHTML = '<span>Awakening Sloth...</span> <span>🦥</span>';
 
-    // Display recipe on RecipeCard
-    this.recipeCard.setRecipe(recipe, latencyMs);
-  }
+    const startTime = performance.now();
 
-  private handleMealCompleted(recipe: LazyRecipe): void {
-    // Fire celebratory confetti animation
     try {
-      confetti({
-        particleCount: 80,
-        spread: 60,
-        origin: { y: 0.7 },
-        colors: ['#5ebb89', '#e58e38', '#fbbf24', '#f87171']
-      });
-    } catch {
-      // Confetti fallback if canvas not available
+      const { recipe, engineUsed } = await this.inferenceManager.generateRecipe(
+        selectedIngredients,
+        urgencyItems
+      );
+      const latencyMs = Math.round(performance.now() - startTime);
+
+      this.recipeCard.setRecipe(recipe, latencyMs, engineUsed);
+    } catch (err) {
+      console.error('Recipe generation error:', err);
+    } finally {
+      this.cookButton.innerHTML = originalText;
+      this.updateCookButtonState(this.pantryInput.getSelectedIngredients().length);
     }
-
-    // Atomically persist Payoff metrics to LocalStorage
-    const currentSummary = LocalStorageStore.getPayoffSummary();
-    const updatedSummary = {
-      ...currentSummary,
-      totalMealsCooked: currentSummary.totalMealsCooked + 1,
-      totalMinutesSaved: currentSummary.totalMinutesSaved + recipe.lazy_payoff.decision_minutes_saved,
-      totalMoneySavedUSD: Number((currentSummary.totalMoneySavedUSD + recipe.lazy_payoff.money_saved_usd).toFixed(2)),
-      totalPansAvoided: currentSummary.totalPansAvoided + recipe.lazy_payoff.dishes_saved,
-      unlockedBadges: currentSummary.unlockedBadges.includes('First Sloth Meal')
-        ? currentSummary.unlockedBadges
-        : [...currentSummary.unlockedBadges, 'First Sloth Meal']
-    };
-
-    LocalStorageStore.setPayoffSummary(updatedSummary);
   }
 }
 
