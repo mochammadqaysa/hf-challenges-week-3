@@ -7,6 +7,7 @@
 
 import confetti from 'canvas-confetti';
 import { PayoffEngine } from '../core/payoff-engine';
+import { GroceryGapChecklist } from './GroceryGapChecklist';
 import type { PayoffSummary } from '../storage/local-storage';
 import type { LazyRecipe } from '../types/recipe';
 
@@ -238,21 +239,7 @@ export class RecipeCard {
           </div>
         </div>
 
-        ${
-          recipe.grocery_gap && recipe.grocery_gap.length > 0
-            ? `
-          <div class="grocery-gap-callout">
-            <div class="grocery-gap-header">
-              <span>🛒</span>
-              <span>Grocery Gap (Optional Elevating Staples):</span>
-            </div>
-            <div class="grocery-gap-list">
-              Missing ${recipe.grocery_gap.join(' or ')}? You can skip it or add it later!
-            </div>
-          </div>
-        `
-            : ''
-        }
+        <div id="grocery-gap-slot" class="grocery-gap-slot"></div>
 
         <div class="cooked-action-bar">
           <div class="payoff-badge-pill">
@@ -270,6 +257,17 @@ export class RecipeCard {
         </div>
       </div>
     `;
+
+    // Mount GroceryGapChecklist if gaps exist
+    if (recipe.grocery_gap && recipe.grocery_gap.length > 0) {
+      const slot = this.container.querySelector<HTMLElement>('#grocery-gap-slot');
+      if (slot) {
+        const gapChecklist = new GroceryGapChecklist({
+          groceryGap: recipe.grocery_gap
+        });
+        slot.appendChild(gapChecklist.getElement());
+      }
+    }
 
     // Bind step item clicks
     const stepItems = this.container.querySelectorAll<HTMLElement>('.step-item');

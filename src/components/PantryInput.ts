@@ -5,6 +5,8 @@
 
 import { PRESET_PANTRY_CATEGORIES } from '../types/pantry';
 import { LocalStorageStore } from '../storage/local-storage';
+import { SafetyFilter, FRIENDLY_TOXIC_WARNING } from '../core/safety-filter';
+import { Toast } from './Toast';
 
 export interface PantryInputOptions {
   onSelectionChange?: (selectedIds: string[], urgencyIds: string[]) => void;
@@ -89,10 +91,19 @@ export class PantryInput {
 
     if (items.length === 0) return;
 
+    let interceptedToxic = false;
     for (const item of items) {
+      if (!SafetyFilter.isSafe(item)) {
+        interceptedToxic = true;
+        continue;
+      }
       LocalStorageStore.addCustomIngredient(item);
       const cleanId = `c_${encodeURIComponent(item.toLowerCase())}`;
       this.selectedIds.add(cleanId);
+    }
+
+    if (interceptedToxic) {
+      Toast.warn(FRIENDLY_TOXIC_WARNING);
     }
 
     this.customItems = LocalStorageStore.getCustomIngredients();

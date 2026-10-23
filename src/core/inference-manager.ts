@@ -6,11 +6,45 @@
 
 import { DeterministicSlothEngine } from './heuristic-engine';
 import { LazyChefDBAdapter, type CachedRecipe } from '../storage/db';
+import { SafetyFilter } from './safety-filter';
+import { validateSlothRecipe } from './validator';
 import type { LazyRecipe } from '../types/recipe';
 import type {
   WorkerInboundMessage,
   WorkerOutboundMessage
 } from '../types/messages';
+
+/**
+ * Constructs structured prompt for Gemma 2B enforcing Sloth Constraints.
+ */
+export function buildSlothPrompt(ingredients: string[], urgency: string[] = []): string {
+  const urgencySection =
+    urgency.length > 0 ? `\nUrgent items to prioritize: ${urgency.join(', ')}.` : '';
+
+  return `You are LazyChef, a zero-stress culinary autopilot.
+Recommend EXACTLY ONE meal that satisfies the Sloth Constraints:
+1. Exactly 1 cooking vessel (one of: "1 Skillet", "1 Pot", "1 Sheet Pan", "1 Microwave Bowl").
+2. Exactly 1 to 3 cooking steps.
+3. Total cooking time <= 15 minutes.
+
+Available pantry ingredients: ${ingredients.join(', ')}.${urgencySection}
+
+Respond ONLY with a valid JSON object matching this schema:
+{
+  "title": "string",
+  "sloth_level": "Sloth Level 1: 1 Pan, 1 Spatula, 0 Knives" | "Sloth Level 2: 1 Pot, 1 Spoon, Minimal Prep" | "Sloth Level 3: 1 Sheet-Pan, Dump & Bake",
+  "vessel": "1 Skillet" | "1 Pot" | "1 Sheet Pan" | "1 Microwave Bowl",
+  "cook_time_minutes": number (1 to 15),
+  "ingredients_used": string[],
+  "grocery_gap": string[] (0 to 2 items),
+  "steps": string[] (1 to 3 items),
+  "lazy_payoff": {
+    "decision_minutes_saved": 15,
+    "money_saved_usd": 6.5,
+    "dishes_saved": 2
+  }
+}`;
+}
 
 export type EngineStatus =
   | 'checking'
@@ -61,6 +95,9 @@ export class SlothInferenceManager {
   private status: EngineStatus = 'checking';
   private progress: ModelStreamingProgress | null = null;
   private worker: Worker | null = null;
+  private ollamaEnabled = false;
+  private ollamaEndpoint = 'http://localhost:11434/api/generate';
+  private ollamaModel = 'gemma2:2b';
   private pendingRequests = new Map<
     string,
     {
@@ -80,6 +117,30 @@ export class SlothInferenceManager {
       SlothInferenceManager.instance = new SlothInferenceManager();
     }
     return SlothInferenceManager.instance;
+  }
+
+  public isOllamaEnabled(): boolean {
+    return this.ollamaEnabled;
+  }
+
+  public setOllamaEnabled(enabled: boolean): void {
+    this.ollamaEnabled = enabled;
+  }
+
+  public getOllamaEndpoint(): string {
+    return this.ollamaEndpoint;
+  }
+
+  public setOllamaEndpoint(endpoint: string): void {
+    this.ollamaEndpoint = endpoint;
+  }
+
+  public getOllamaModel(): string {
+    return this.ollamaModel;
+  }
+
+  public setOllamaModel(model: string): void {
+    this.ollamaModel = model;
   }
 
   public getStatus(): EngineStatus {
@@ -206,15 +267,23 @@ export class SlothInferenceManager {
 
   /**
    * Generates a single LazyRecipe adhering to Sloth Constraints.
-   * Checks IndexedDB cache first, dispatches to WebGPU worker if ready,
+   * Validates ingredient safety (SEC-002), checks IndexedDB cache,
+   * dispatches to WebGPU worker if ready, tries Localhost Ollama if enabled,
    * or falls back to DeterministicSlothEngine in <15ms.
    */
   public async generateRecipe(
     ingredients: string[],
     urgency: string[] = []
   ): Promise<{ recipe: LazyRecipe; engineUsed: CachedRecipe['engineUsed'] }> {
+    // Validate safety of inputs first (SEC-002, AC-005)
+    SafetyFilter.validateIngredients(ingredients);
+
     const activeEngineType: CachedRecipe['engineUsed'] =
-      this.status === 'ready_webgpu' ? 'webgpu_gemma2b' : 'deterministic';
+      this.status === 'ready_webgpu'
+        ? 'webgpu_gemma2b'
+        : this.ollamaEnabled
+        ? 'ollama'
+        : 'deterministic';
 
     // 1. Check IndexedDB cache first
     try {
@@ -242,11 +311,30 @@ export class SlothInferenceManager {
         ).catch((e) => console.warn('Failed to cache WebGPU recipe:', e));
         return { recipe, engineUsed: 'webgpu_gemma2b' };
       } catch (err) {
-        console.warn('WebGPU generation failed, falling back to heuristic engine:', err);
+        console.warn('WebGPU generation failed, falling back to next engine:', err);
       }
     }
 
-    // 3. Fallback: Instant Deterministic Heuristic Engine (<15ms)
+    // 3. Optional Localhost Ollama REST Adapter (TASK-022)
+    if (this.ollamaEnabled) {
+      try {
+        const recipe = await this.generateViaOllama(ingredients, urgency);
+        await LazyChefDBAdapter.setCachedRecipe(
+          ingredients,
+          urgency,
+          'ollama',
+          recipe
+        ).catch((e) => console.warn('Failed to cache Ollama recipe:', e));
+        return { recipe, engineUsed: 'ollama' };
+      } catch (err) {
+        console.warn(
+          'Ollama unavailable or failed, silently falling back to deterministic heuristic engine:',
+          err
+        );
+      }
+    }
+
+    // 4. Fallback: Instant Deterministic Heuristic Engine (<15ms)
     const { recipe: fallbackRecipe } = DeterministicSlothEngine.generate(ingredients, urgency);
     await LazyChefDBAdapter.setCachedRecipe(
       ingredients,
@@ -256,6 +344,56 @@ export class SlothInferenceManager {
     ).catch((e) => console.warn('Failed to cache heuristic recipe:', e));
 
     return { recipe: fallbackRecipe, engineUsed: 'deterministic' };
+  }
+
+  /**
+   * Generates a recipe via Localhost Ollama REST adapter (TASK-022).
+   * Enforces 3.5s timeout and validates JSON output against validateSlothRecipe.
+   */
+  public async generateViaOllama(
+    ingredients: string[],
+    urgency: string[] = []
+  ): Promise<LazyRecipe> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+    try {
+      const prompt = buildSlothPrompt(ingredients, urgency);
+      const res = await fetch(this.ollamaEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.ollamaModel,
+          prompt,
+          format: 'json',
+          stream: false,
+          options: {
+            temperature: 0.2,
+            top_p: 0.9
+          }
+        }),
+        signal: controller.signal
+      });
+
+      if (!res.ok) {
+        throw new Error(`Ollama HTTP error ${res.status}`);
+      }
+
+      const data = (await res.json()) as { response?: string };
+      if (!data.response) {
+        throw new Error('Ollama returned empty response payload');
+      }
+
+      let cleaned = data.response.trim();
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+      }
+
+      const parsed = JSON.parse(cleaned);
+      return validateSlothRecipe(parsed);
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   private generateViaWorker(

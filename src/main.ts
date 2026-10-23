@@ -8,7 +8,9 @@ import { Header } from './components/Header';
 import { PantryInput } from './components/PantryInput';
 import { RecipeCard } from './components/RecipeCard';
 import { LazyPayoffDashboard } from './components/LazyPayoffDashboard';
+import { Toast } from './components/Toast';
 import { SlothInferenceManager } from './core/inference-manager';
+import { SafetyFilter, FRIENDLY_TOXIC_WARNING } from './core/safety-filter';
 
 class LazyChefApp {
   private appRoot: HTMLElement;
@@ -96,7 +98,17 @@ class LazyChefApp {
     const selectedIngredients = this.pantryInput.getSelectedIngredients();
     const urgencyItems = this.pantryInput.getUrgencyIngredients();
 
-    if (selectedIngredients.length === 0) return;
+    if (selectedIngredients.length === 0) {
+      Toast.warn('Select at least 1 pantry item to awaken LazyChef 🦥');
+      return;
+    }
+
+    // Layer 1 Safety Screening (SEC-002, AC-005)
+    const safetyResult = SafetyFilter.checkSafety(selectedIngredients);
+    if (!safetyResult.isSafe) {
+      Toast.warn(FRIENDLY_TOXIC_WARNING);
+      return;
+    }
 
     this.cookButton.disabled = true;
     const originalText = this.cookButton.innerHTML;
