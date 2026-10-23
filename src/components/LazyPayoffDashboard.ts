@@ -7,16 +7,22 @@
 import { LocalStorageStore, type PayoffSummary } from '../storage/local-storage';
 import { MILESTONE_BADGES } from '../core/payoff-engine';
 
+export interface LazyPayoffDashboardOptions {
+  onExportClick?: (summary: PayoffSummary) => void;
+}
+
 export class LazyPayoffDashboard {
   private element: HTMLElement;
   private currentSummary: PayoffSummary;
+  private onExportClick?: (summary: PayoffSummary) => void;
 
-  constructor() {
+  constructor(options: LazyPayoffDashboardOptions = {}) {
     this.element = document.createElement('section');
     this.element.className = 'payoff-dashboard-card';
     this.element.setAttribute('role', 'region');
     this.element.setAttribute('aria-label', 'The Lazy Payoff Cumulative Savings');
 
+    this.onExportClick = options.onExportClick;
     this.currentSummary = LocalStorageStore.getPayoffSummary();
     this.render();
   }
@@ -25,9 +31,17 @@ export class LazyPayoffDashboard {
     return this.element;
   }
 
+  public getSummary(): PayoffSummary {
+    return this.currentSummary;
+  }
+
   public updateSummary(summary: PayoffSummary): void {
     this.currentSummary = summary;
     this.render();
+  }
+
+  public triggerExport(): void {
+    this.onExportClick?.(this.currentSummary);
   }
 
   private render(): void {

@@ -1163,10 +1163,364 @@ body {
   color: var(--accent-sloth-green);
 }
 
-/* Accessibility & Mobile Responsiveness */
+/* Header Actions & High-Contrast Mode Toggle */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.btn-theme-contrast {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 44px;
+}
+
+.btn-theme-contrast:hover {
+  border-color: var(--accent-amber);
+  color: var(--accent-amber);
+  transform: translateY(-1px);
+}
+
+.btn-theme-contrast.active {
+  background: var(--accent-amber);
+  color: #121815;
+  border-color: var(--accent-amber);
+  font-weight: 700;
+}
+
+/* Payoff Actions Row & DevRelay Exporter Button */
+.payoff-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.btn-export-devrelay {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: linear-gradient(135deg, rgba(229, 142, 56, 0.15), rgba(94, 187, 137, 0.15));
+  border: 1px solid var(--accent-amber);
+  color: var(--text-primary);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 48px;
+}
+
+.btn-export-devrelay:hover {
+  background: linear-gradient(135deg, rgba(229, 142, 56, 0.25), rgba(94, 187, 137, 0.25));
+  border-color: var(--accent-sloth-green);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(229, 142, 56, 0.25);
+}
+
+/* DevRelay Exporter Modal Dialog */
+.devrelay-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: var(--space-md);
+  animation: fadeIn 200ms ease-out;
+}
+
+.devrelay-modal-overlay.hidden {
+  display: none !important;
+}
+
+.devrelay-modal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  max-width: 720px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: modalScaleUp 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.devrelay-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface-elevated);
+}
+
+.modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.modal-icon {
+  font-size: 1.8rem;
+}
+
+.modal-title {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.modal-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.btn-close-modal {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.75rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  min-height: 48px;
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-close-modal:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.devrelay-modal-body {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  overflow-y: auto;
+}
+
+.devrelay-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-label code {
+  background: var(--bg-primary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--accent-amber);
+  font-size: 0.8rem;
+}
+
+.form-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast);
+  min-height: 48px;
+}
+
+.form-input:focus {
+  border-color: var(--accent-sloth-green);
+  box-shadow: 0 0 0 2px var(--accent-sloth-green-glow);
+}
+
+.devrelay-preview-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.preview-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.preview-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.preview-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent-sloth-green);
+  background: rgba(94, 187, 137, 0.12);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.devrelay-preview-textarea {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 180px;
+}
+
+.devrelay-modal-footer {
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-surface-elevated);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-md);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalScaleUp {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ==========================================================================
+   High-Contrast Accessibility Mode Tokens & Component Overrides
+   Enforces CON-002, AC-001
+   ========================================================================== */
+
+[data-theme="high-contrast"] {
+  --bg-primary: #000000;
+  --bg-surface: #0a0a0a;
+  --bg-surface-elevated: #151515;
+  --bg-surface-hover: #222222;
+  --border-subtle: #ffffff;
+  --border-medium: #ffffff;
+  --border-glow: #00ff66;
+
+  --text-primary: #ffffff;
+  --text-secondary: #f0f0f0;
+  --text-muted: #d0d0d0;
+  --text-inverted: #000000;
+
+  --accent-sloth-green: #00ff66;
+  --accent-sloth-green-glow: rgba(0, 255, 102, 0.4);
+  --accent-amber: #ffcc00;
+  --accent-amber-glow: rgba(255, 204, 0, 0.4);
+  --accent-coral: #ff5555;
+  --accent-urgent: #ffcc00;
+  --accent-urgent-bg: rgba(255, 204, 0, 0.25);
+
+  --cat-protein: #ff7777;
+  --cat-carb: #ffcc00;
+  --cat-vegetable: #00ff66;
+  --cat-aromatic: #dd88ff;
+  --cat-dairy: #ffff55;
+  --cat-staple: #55ccff;
+
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-glow: none;
+}
+
+[data-theme="high-contrast"] .tag-pill,
+[data-theme="high-contrast"] .btn-cook-lazily,
+[data-theme="high-contrast"] .btn-cooked-action,
+[data-theme="high-contrast"] .btn-theme-contrast,
+[data-theme="high-contrast"] .btn-export-devrelay,
+[data-theme="high-contrast"] .step-item,
+[data-theme="high-contrast"] .metric-card,
+[data-theme="high-contrast"] .badge-chip,
+[data-theme="high-contrast"] .recipe-card,
+[data-theme="high-contrast"] .pantry-card,
+[data-theme="high-contrast"] .payoff-dashboard-card {
+  border: 2px solid #ffffff !important;
+}
+
+[data-theme="high-contrast"] .tag-pill.active {
+  border: 2px solid #00ff66 !important;
+  background: #003311 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="high-contrast"] .btn-cook-lazily {
+  background: #00ff66 !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="high-contrast"] .step-item.completed {
+  background: #003311 !important;
+  border-color: #00ff66 !important;
+}
+
+/* Accessibility & Mobile Touch Targets (CON-002, AC-001) */
+.tag-pill {
+  min-height: 48px;
+}
+
+.urgency-toggle {
+  min-height: 36px;
+  min-width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-secondary,
+.btn-cook-lazily,
+.btn-cooked-action,
+.btn-cook-another {
+  min-height: 48px;
+}
+
 :focus-visible {
-  outline: 2px solid var(--accent-sloth-green);
-  outline-offset: 2px;
+  outline: 3px solid var(--accent-sloth-green) !important;
+  outline-offset: 3px !important;
 }
 
 @media (max-width: 640px) {
@@ -1195,5 +1549,24 @@ body {
 
   .btn-secondary {
     width: 100%;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .devrelay-modal-card {
+    max-height: 96vh;
+    border-radius: var(--radius-md);
+  }
+
+  .devrelay-modal-footer {
+    flex-direction: column;
+  }
+
+  .devrelay-modal-footer button {
+    width: 100%;
+    justify-content: center;
   }
 }

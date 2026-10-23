@@ -28,9 +28,22 @@ export class Header {
             <p class="brand-subtitle">Sloth Constraints: 1 Vessel &bull; &le;3 Steps &bull; &le;15 Minutes</p>
           </div>
         </div>
-        <div class="engine-status-badge" id="engine-status-badge">
-          <span class="status-dot" id="header-status-dot"></span>
-          <span class="status-label" id="header-status-label">Checking Engine...</span>
+        <div class="header-actions">
+          <button 
+            type="button" 
+            id="theme-contrast-toggle" 
+            class="btn-theme-contrast" 
+            aria-label="Toggle high contrast mode" 
+            aria-pressed="false"
+            title="Toggle high contrast accessibility mode"
+          >
+            <span class="contrast-icon">🌓</span>
+            <span class="contrast-label">High Contrast</span>
+          </button>
+          <div class="engine-status-badge" id="engine-status-badge">
+            <span class="status-dot" id="header-status-dot"></span>
+            <span class="status-label" id="header-status-label">Checking Engine...</span>
+          </div>
         </div>
       </div>
       <div class="model-progress-container hidden" id="model-progress-container">
@@ -50,6 +63,49 @@ export class Header {
     this.progressPercent = this.element.querySelector('#model-progress-percent') as HTMLElement;
     this.progressFile = this.element.querySelector('#model-progress-file') as HTMLElement;
     this.progressBarFill = this.element.querySelector('#model-progress-fill') as HTMLElement;
+
+    this.initThemeToggle();
+  }
+
+  private initThemeToggle(): void {
+    const toggleBtn = this.element.querySelector<HTMLButtonElement>('#theme-contrast-toggle');
+    if (!toggleBtn) return;
+
+    // Check saved preference or media query
+    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('lazychef_high_contrast') : null;
+    const prefersHighContrast =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-contrast: more)').matches;
+
+    const isHighContrast = saved === 'true' || (saved === null && prefersHighContrast);
+
+    if (isHighContrast && typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', 'high-contrast');
+      toggleBtn.setAttribute('aria-pressed', 'true');
+      toggleBtn.classList.add('active');
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') === 'high-contrast';
+      const nextState = !current;
+
+      if (nextState) {
+        document.documentElement.setAttribute('data-theme', 'high-contrast');
+        toggleBtn.setAttribute('aria-pressed', 'true');
+        toggleBtn.classList.add('active');
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('lazychef_high_contrast', 'true');
+        }
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        toggleBtn.setAttribute('aria-pressed', 'false');
+        toggleBtn.classList.remove('active');
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('lazychef_high_contrast', 'false');
+        }
+      }
+    });
   }
 
   public getElement(): HTMLElement {

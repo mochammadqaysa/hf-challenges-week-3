@@ -48,3 +48,21 @@ export const DEFAULT_LAZY_PAYOFF: LazyPayoff = {
   money_saved_usd: 6.5,
   dishes_saved: 2
 };
+
+export interface GenerationResult {
+  recipe: LazyRecipe;
+  engineUsed: string;
+}
+
+/**
+ * Interface abstraction for recipe inference engines (DIP decoupling).
+ */
+export interface IRecipeInferenceService {
+  generateRecipe(ingredients: string[], urgency?: string[]): Promise<GenerationResult>;
+  initBackgroundPipeline(): Promise<void>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onStatusChange(listener: (status: any) => void): () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onProgressChange(listener: (progress: any) => void): () => void;
+}
+

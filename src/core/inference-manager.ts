@@ -8,7 +8,7 @@ import { DeterministicSlothEngine } from './heuristic-engine';
 import { LazyChefDBAdapter, type CachedRecipe } from '../storage/db';
 import { SafetyFilter } from './safety-filter';
 import { validateSlothRecipe } from './validator';
-import type { LazyRecipe } from '../types/recipe';
+import type { LazyRecipe, IRecipeInferenceService } from '../types/recipe';
 import type {
   WorkerInboundMessage,
   WorkerOutboundMessage
@@ -89,7 +89,7 @@ export async function checkWebGPUSupport(): Promise<boolean> {
   }
 }
 
-export class SlothInferenceManager {
+export class SlothInferenceManager implements IRecipeInferenceService {
   private static instance: SlothInferenceManager | null = null;
 
   private status: EngineStatus = 'checking';

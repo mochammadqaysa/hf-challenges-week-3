@@ -9,24 +9,27 @@
 ```
 lazychef-pantry-autopilot/
 ├── index.html                       # Single Page App shell with Google Fonts & root mount point
-├── package.json                     # NPM dependencies, Vitest, TypeScript, Vite
+├── package.json                     # NPM dependencies, Vitest, Playwright, TypeScript, Vite
+├── playwright.config.ts             # Playwright E2E configuration with auto-spawning webServer
 ├── tsconfig.json                    # Strict TypeScript configuration (DOM, WebWorker)
 ├── vite.config.ts                   # Bundler configuration supporting ES workers & Vitest
 ├── src/
 │   ├── main.ts                      # Application bootstrapper, DOM hydration, safety gate & state bus
-│   ├── index.css                    # Vanilla CSS Design System (Sloth Earth & Warm Terracotta, Toast & Gap CSS)
+│   ├── index.css                    # Vanilla CSS Design System (Sloth Earth, High-Contrast Theme, Modal & Toast)
 │   ├── components/                  # UI view components
-│   │   ├── Header.ts                # Branding, engine status badge, background streaming progress bar
+│   │   ├── Header.ts                # Branding, engine status badge, high-contrast toggle, model progress bar
 │   │   ├── PantryInput.ts           # Tag selector, "Use Soon" urgency markers, toxic-filtered custom input
 │   │   ├── RecipeCard.ts            # 1-vessel, 3-step recipe display with checklist & celebration trigger
-│   │   ├── LazyPayoffDashboard.ts   # Gamified savings tracker (minutes, dollars, pans avoided, badges)
+│   │   ├── LazyPayoffDashboard.ts   # Gamified savings tracker (minutes, dollars, pans avoided, badges, export CTA)
 │   │   ├── GroceryGapChecklist.ts   # Copyable missing staples component with 1-click clipboard copy
+│   │   ├── DevRelayExporter.ts      # Hacktoberfest submission modal post generator with {% agent_session %}
 │   │   └── Toast.ts                 # Accessible micro-notification toast system (warning, success, info, error)
 │   ├── core/                        # Business logic & inference engines
 │   │   ├── validator.ts             # Sloth JSON schema validator & pure constraint enforcement
+│   │   ├── sanitizer.ts             # Zero-dependency HTML entity escaping for XSS prevention (SEC-001)
 │   │   ├── heuristic-engine.ts      # Zero-latency (<15ms) deterministic emergency recipe matrix
 │   │   ├── safety-filter.ts         # Dual-layer toxic/inedible input screening with word-boundary regex
-│   │   ├── inference-manager.ts     # Generation router (Worker WebGPU, Localhost Ollama, Heuristic fallback)
+│   │   ├── inference-manager.ts     # Generation router implementing IRecipeInferenceService
 │   │   └── payoff-engine.ts         # Deterministic savings calculator & badge unlock evaluator
 │   ├── storage/                     # Client-side persistence layer
 │   │   ├── db.ts                    # IndexedDB (LazyChefDB) for recipe caching & payoff history
@@ -34,21 +37,26 @@ lazychef-pantry-autopilot/
 │   ├── workers/                     # Background multi-threading pipelines
 │   │   └── inference.worker.ts      # Transformers.js WebGPU pipeline running Gemma 2B in dedicated worker
 │   └── types/
-│       ├── recipe.ts                # LazyRecipe, AllowedVessel, SlothLevel domain types
+│       ├── recipe.ts                # LazyRecipe, AllowedVessel, SlothLevel, IRecipeInferenceService
 │       ├── pantry.ts                # PantryItem, IngredientCategory, preset pantry collections
 │       └── messages.ts              # Typed Web Worker IPC protocol contracts
 ├── tests/                           # Test automation suite
-│   └── unit/
-│       ├── validator.test.ts        # 100% pure constraint validation suite
-│       ├── heuristic-engine.test.ts # Matrix matching & execution latency test (<15ms)
-│       ├── safety-filter.test.ts    # 100% lexical blocklist & toxic screening suite
-│       ├── inference-manager.test.ts# Routing, caching, Ollama adapter, and silent fallback tests
-│       ├── payoff.test.ts           # Payoff accumulator & badge unlocking tests
-│       ├── db.test.ts               # IndexedDB CRUD & composite key tests
-│       ├── local-storage.test.ts    # Synchronous storage cache unit tests
-│       ├── worker-utils.test.ts     # Worker message & markdown stripping tests
-│       ├── grocery-gap.test.ts      # Grocery gap checklist & clipboard copy tests
-│       └── toast.test.ts            # Toast notification lifecycle & ARIA tests
+│   ├── unit/
+│   │   ├── validator.test.ts        # 100% pure constraint validation suite
+│   │   ├── sanitizer.test.ts        # 100% HTML entity escaping & XSS prevention tests
+│   │   ├── heuristic-engine.test.ts # Matrix matching & execution latency test (<15ms)
+│   │   ├── safety-filter.test.ts    # 100% lexical blocklist & toxic screening suite
+│   │   ├── inference-manager.test.ts# Routing, caching, Ollama adapter, and silent fallback tests
+│   │   ├── payoff.test.ts           # Payoff accumulator & badge unlocking tests
+│   │   ├── db.test.ts               # IndexedDB CRUD & composite key tests
+│   │   ├── local-storage.test.ts    # Synchronous storage cache unit tests
+│   │   ├── worker-utils.test.ts     # Worker message & markdown stripping tests
+│   │   ├── grocery-gap.test.ts      # Grocery gap checklist & clipboard copy tests
+│   │   ├── devrelay-exporter.test.ts# DevRelay export markdown generation & modal unit tests
+│   │   ├── toast.test.ts            # Toast notification lifecycle & ARIA tests
+│   │   └── cooking-journey.test.ts  # Full journey DOM integration test suite
+│   └── e2e/
+│       └── cooking-flow.spec.ts     # Playwright cross-browser user journey E2E test suite
 ├── docs/                            # SDLC Documentation
 │   ├── ARCHITECTURE.md              # Living architecture topography map
 │   ├── adr/                         # Architecture Decision Records (e.g. ADR-0001)
@@ -133,10 +141,19 @@ lazychef-pantry-autopilot/
 - **Methods:** `copyToClipboard()`, `getItems()`, `setItems()`.
 - **Contract:** Renders 0-2 optional elevating ingredients from `recipe.grocery_gap` with 1-click clipboard copy.
 
+### `src/components/DevRelayExporter.ts`
+- **Class:** `DevRelayExporter`
+- **Function:** `generateSubmissionMarkdown(payoffSummary, sessionId)`
+- **Methods:** `open()`, `close()`, `copySubmissionMarkdown()`, `downloadSubmissionFile()`.
+- **Contract:** Formats and exports Hacktoberfest Week 3 submission post conforming to `submission-template.md` with dynamic Payoff metrics injection and embeddable `{% agent_session %}` Liquid tag.
+
 ---
 
 ## 4. Verification & Testing
 
-- **Unit Tests:** `npm test` (Runs Vitest suite across 10 test files with 111 passed tests).
-- **Coverage:** `npm run test:coverage` (100% on `safety-filter.ts`, `validator.ts`, and `db.ts`).
-- **Production Build:** `npm run build` (Compiles TypeScript and bundles via Vite; JS bundle `60.56 KB` / `19.67 KB` gzip, well under the 350 KB threshold).
+- **Unit Tests:** `npm test` (Runs Vitest suite across 12 test files with 128 passed tests, 0 failures).
+- **E2E Tests:** `npm run test:e2e` (Runs Playwright suite covering full user journey from landing, tag selection, cooking, checklist, payoff update, DevRelay exporter, and high-contrast toggle; 100% pass rate).
+- **Linting:** `npm run lint` (TypeScript strict mode static type checking passes with 0 errors).
+- **Coverage:** `npm run test:coverage` (100% coverage on `safety-filter.ts`, `validator.ts`, `payoff-engine.ts`, `db.ts`, and >96% on `DevRelayExporter.ts` and `LazyPayoffDashboard.ts`).
+- **Production Build:** `npm run build` (Total client bundle HTML+CSS+JS is `28.37 KB` gzipped, less than 10% of the `350 KB` threshold).
+

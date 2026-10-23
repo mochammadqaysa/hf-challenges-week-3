@@ -6,6 +6,7 @@
 import { PRESET_PANTRY_CATEGORIES } from '../types/pantry';
 import { LocalStorageStore } from '../storage/local-storage';
 import { SafetyFilter, FRIENDLY_TOXIC_WARNING } from '../core/safety-filter';
+import { escapeHtml } from '../core/sanitizer';
 import { Toast } from './Toast';
 
 export interface PantryInputOptions {
@@ -139,10 +140,12 @@ export class PantryInput {
 
     pill.classList.toggle('active', isSelected);
     pill.classList.toggle('urgent', isUrgent);
+    pill.setAttribute('aria-pressed', String(isSelected));
 
     const urgencyBtn = pill.querySelector<HTMLElement>('.urgency-toggle');
     if (urgencyBtn) {
       urgencyBtn.setAttribute('title', isUrgent ? 'Marked Use Soon' : 'Mark Use Soon');
+      urgencyBtn.setAttribute('aria-label', isUrgent ? 'Marked Use Soon' : 'Mark Use Soon');
       urgencyBtn.textContent = isUrgent ? '⚡' : '🕒';
     }
   }
@@ -152,7 +155,7 @@ export class PantryInput {
       <div class="section-header">
         <div class="section-title">
           <span>🥕 What's in your pantry?</span>
-          <span id="selected-count-badge" class="selected-count-badge">${this.selectedIds.size} Selected</span>
+          <span id="selected-count-badge" class="selected-count-badge" aria-live="polite">${this.selectedIds.size} Selected</span>
         </div>
       </div>
 
@@ -163,7 +166,7 @@ export class PantryInput {
           placeholder="Add custom items (e.g. Kimchi, Avocado, Cilantro)..." 
           aria-label="Add custom ingredients"
         />
-        <button type="button" id="btn-add-custom" class="btn-secondary">
+        <button type="button" id="btn-add-custom" class="btn-secondary" aria-label="Add custom ingredient">
           + Add
         </button>
       </div>
@@ -185,12 +188,15 @@ export class PantryInput {
                     class="tag-pill ${isSelected ? 'active' : ''} ${isUrgent ? 'urgent' : ''}" 
                     data-ingredient-id="${item.id}"
                     data-ingredient-name="${item.name}"
+                    aria-pressed="${isSelected}"
+                    aria-label="${item.name}${isUrgent ? ' (Use Soon)' : ''}"
                   >
                     <span>${item.name}</span>
                     <span 
                       class="urgency-toggle" 
                       data-urgency-for="${item.id}"
                       title="${isUrgent ? 'Marked Use Soon' : 'Mark Use Soon'}"
+                      aria-label="Toggle ${item.name} urgency Use Soon"
                     >${isUrgent ? '⚡' : '🕒'}</span>
                   </button>
                 `;
@@ -210,14 +216,17 @@ export class PantryInput {
                 const cleanId = `c_${encodeURIComponent(item.toLowerCase())}`;
                 const isSelected = this.selectedIds.has(cleanId);
                 const isUrgent = this.urgencyIds.has(cleanId);
+                const escapedName = escapeHtml(item);
                 return `
                   <button 
                     type="button" 
                     class="tag-pill ${isSelected ? 'active' : ''} ${isUrgent ? 'urgent' : ''}" 
                     data-ingredient-id="${cleanId}"
-                    data-ingredient-name="${item}"
+                    data-ingredient-name="${escapedName}"
+                    aria-pressed="${isSelected}"
+                    aria-label="${escapedName}${isUrgent ? ' (Use Soon)' : ''}"
                   >
-                    <span>${item}</span>
+                    <span>${escapedName}</span>
                     <span 
                       class="urgency-toggle" 
                       data-urgency-for="${cleanId}"
@@ -225,7 +234,7 @@ export class PantryInput {
                     >${isUrgent ? '⚡' : '🕒'}</span>
                     <span 
                       class="delete-custom-item" 
-                      data-delete-custom="${item}" 
+                      data-delete-custom="${escapedName}" 
                       title="Remove custom ingredient"
                       style="margin-left: 4px; opacity: 0.6; font-size: 0.75rem;"
                     >✕</span>

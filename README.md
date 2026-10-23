@@ -7,8 +7,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF.svg)](https://vitejs.dev/)
-[![Tests](https://img.shields.io/badge/Tests-39%20passed-brightgreen.svg)](https://vitest.dev/)
-[![Bundle Size](https://img.shields.io/badge/Bundle%20Size-20.8%20KB%20gzipped-success.svg)](https://vitejs.dev/)
+[![Tests](https://img.shields.io/badge/Tests-134%20passed-brightgreen.svg)](https://vitest.dev/)
+[![E2E](https://img.shields.io/badge/E2E-Playwright%20Passing-brightgreen.svg)](https://playwright.dev/)
+[![Bundle Size](https://img.shields.io/badge/Bundle%20Size-25.9%20KB%20gzipped-success.svg)](https://vitejs.dev/)
 [![Zero Telemetry](https://img.shields.io/badge/Privacy-100%25%20Zero%20Telemetry-orange.svg)](#privacy--zero-telemetry)
 
 ---
@@ -110,23 +111,27 @@ Visit `http://localhost:5173` in your browser.
 LazyChef enforces a **Two-Layer Testing Mandate** (micro tests per change, macro zero-failure suite before each phase):
 
 ```bash
-# Run unit test suite (Vitest)
+# Run unit test suite (Vitest - 134 tests)
 npm test
+
+# Run End-to-End browser journey (Playwright)
+npm run test:e2e
 
 # Run tests with coverage
 npm run test:coverage
 
-# Build for production and verify bundle budget
+# Build for production and verify bundle budget (<350 KB)
 npm run build
 ```
 
 ### Current Verification Metrics
-- **Tests Passing:** 39 / 39 tests across 7 test suites (100% pass rate)
+- **Tests Passing:** 134 / 134 tests across 13 test suites (100% pass rate)
+- **E2E Browser Journey:** 1 Playwright journey passed (2.3s)
 - **Constraint Validator Coverage:** 100% statement & branch coverage
-- **Heuristic Engine Coverage:** 97.45% statement coverage
-- **Production Client Bundle:** **20.8 KB gzipped** (well below the 350 KB limit)
-- **Heuristic Generation Latency:** < 1 ms in browser
-- **Model Inference:** Asynchronous non-blocking Web Worker (60 FPS main thread maintained)
+- **Zero-Dependency Sanitizer:** 100% statement, branch, and line coverage (`src/core/sanitizer.ts`)
+- **Production Client Bundle:** **25.9 KB gzipped** (well below the 350 KB limit CON-002)
+- **Heuristic Generation Latency:** < 1 ms in browser (<15ms budget)
+- **Model Inference:** Asynchronous non-blocking Web Worker with local Ollama fallback
 
 ---
 
@@ -136,10 +141,22 @@ npm run build
   - Project scaffolding, Design System tokens, Domain contracts, Pure Sloth Validator, Heuristic Engine, Pantry Tag UI, Recipe Card, and Main Loop.
 - [x] **Phase 2: Core Experience - Background WebGPU & The Lazy Payoff** (`TASK-010` s.d. `TASK-018`)
   - Web Worker WebGPU pipeline for quantized Gemma 2B, IndexedDB `LazyChefDB`, Header progress bar, Payoff engine, dashboard, and celebratory state transitions.
-- [ ] **Phase 3: Resilience & Safety Guardrails** (`TASK-019` s.d. `TASK-024`)
-  - Dual-layer toxic screening blocklist, toast alerts, Grocery Gap checklist copy, and local Ollama desktop adapter.
-- [ ] **Phase 4: Polish, DevRelay Exporter & E2E Suite** (`TASK-025` s.d. `TASK-030`)
-  - DevRelay markdown export modal with `{% agent_session %}` Liquid tag, accessibility polish, and Playwright cross-browser tests.
+- [x] **Phase 3: Resilience & Safety Guardrails** (`TASK-019` s.d. `TASK-024`)
+  - Dual-layer toxic screening blocklist (50+ entries), toast alerts, Grocery Gap checklist copy, and local Ollama desktop adapter.
+- [x] **Phase 4: Polish, DevRelay Exporter & E2E Suite** (`TASK-025` s.d. `TASK-030`)
+  - DevRelay markdown export module, high-contrast accessibility mode, and Playwright cross-browser tests.
+- [x] **Phase 5: Security Hardening & Architecture Refactoring** (`TASK-101` s.d. `TASK-204`)
+  - Zero-dependency HTML entity encoder (`escapeHtml`), DOM template XSS protection, and `IRecipeInferenceService` DIP decoupling.
+
+---
+
+## 🤖 AI Agent Session Transcript
+
+This project was built following a strict SDLC discipline with continuous AI pair programming. The full interactive session transcript has been saved and published to DEV via DevRelay:
+
+- **Session Slug:** `lazychef-pantry-autopilot-autonomous-kitchen-copilot-with-gemma-2b-webgpu-local-heuristics-iqfpqs`
+- **Liquid Embed Tag:** `{% agent_session 1116 %}`
+- **Transcript URL:** [Inspect Full Agent Session on DEV](https://dev.to/agent_sessions/lazychef-pantry-autopilot-autonomous-kitchen-copilot-with-gemma-2b-webgpu-local-heuristics-iqfpqs)
 
 ---
 

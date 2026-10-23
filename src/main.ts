@@ -11,6 +11,7 @@ import { LazyPayoffDashboard } from './components/LazyPayoffDashboard';
 import { Toast } from './components/Toast';
 import { SlothInferenceManager } from './core/inference-manager';
 import { SafetyFilter, FRIENDLY_TOXIC_WARNING } from './core/safety-filter';
+import type { IRecipeInferenceService } from './types/recipe';
 
 class LazyChefApp {
   private appRoot: HTMLElement;
@@ -19,7 +20,7 @@ class LazyChefApp {
   private recipeCard: RecipeCard;
   private payoffDashboard: LazyPayoffDashboard;
   private cookButton: HTMLButtonElement;
-  private inferenceManager: SlothInferenceManager;
+  private inferenceManager: IRecipeInferenceService;
 
   constructor() {
     const root = document.getElementById('app');

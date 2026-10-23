@@ -8,6 +8,7 @@
 import confetti from 'canvas-confetti';
 import { PayoffEngine } from '../core/payoff-engine';
 import { GroceryGapChecklist } from './GroceryGapChecklist';
+import { escapeHtml } from '../core/sanitizer';
 import type { PayoffSummary } from '../storage/local-storage';
 import type { LazyRecipe } from '../types/recipe';
 
@@ -148,6 +149,7 @@ export class RecipeCard {
       const idx = Number(item.getAttribute('data-step-index'));
       const isDone = this.completedSteps.has(idx);
       item.classList.toggle('completed', isDone);
+      item.setAttribute('aria-checked', String(isDone));
       if (this.isMealCooked) {
         item.classList.add('locked');
       }
@@ -196,22 +198,22 @@ export class RecipeCard {
       <div class="recipe-card" role="region" aria-label="Sloth Recipe Recommendation">
         <div class="recipe-header-row">
           <div class="recipe-badges">
-            <span class="badge-vessel">${vesselIcon} ${recipe.vessel}</span>
+            <span class="badge-vessel">${vesselIcon} ${escapeHtml(recipe.vessel)}</span>
             <span class="badge-time">⏱️ ${recipe.cook_time_minutes} Mins (&le;15m)</span>
             <span class="badge-latency">${engineBadgeText}</span>
           </div>
         </div>
 
         <div>
-          <h2 class="recipe-title">${recipe.title}</h2>
-          <p class="recipe-sloth-level">${recipe.sloth_level}</p>
+          <h2 class="recipe-title">${escapeHtml(recipe.title)}</h2>
+          <p class="recipe-sloth-level">${escapeHtml(recipe.sloth_level)}</p>
         </div>
 
         <div class="recipe-ingredients-block">
           <span class="block-subtitle">Ingredients Used:</span>
           <div class="ingredients-chips-wrap">
             ${recipe.ingredients_used
-              .map((ing) => `<span class="ingredient-chip">${ing}</span>`)
+              .map((ing) => `<span class="ingredient-chip">${escapeHtml(ing)}</span>`)
               .join('')}
           </div>
         </div>
@@ -231,7 +233,7 @@ export class RecipeCard {
               >
                 <div class="step-checkbox">${this.completedSteps.has(idx) ? '✓' : ''}</div>
                 <div class="step-number">0${idx + 1}.</div>
-                <div class="step-text">${step}</div>
+                <div class="step-text">${escapeHtml(step)}</div>
               </div>
             `
               )

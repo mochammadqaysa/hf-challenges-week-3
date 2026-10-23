@@ -57,4 +57,13 @@ describe('DeterministicSlothEngine (Offline Heuristic Matching)', () => {
     expect(recipe.grocery_gap).not.toContain('Green Onions');
     expect(recipe.grocery_gap.length).toBeLessThanOrEqual(2);
   });
+
+  it('prioritizes recipes when core items are marked with urgency (Use Soon)', () => {
+    // Both pasta and rice ingredients are provided, but rice is marked urgent
+    const { recipe } = DeterministicSlothEngine.generate(
+      ['leftover_rice', 'pasta', 'garlic'],
+      ['leftover_rice']
+    );
+    expect(recipe.title).toContain('Fried Rice');
+  });
 });
