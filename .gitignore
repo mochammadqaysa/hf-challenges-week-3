@@ -1,0 +1,39 @@
+# Node & Package Managers
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build Outputs
+dist/
+dist-ssr/
+*.local
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# Environment Variables
+.env
+.env.production
+.env.local
+.env.*.local
+
+# Editor & OS files
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Transformers / HuggingFace cache (if stored locally)
+models/
+transformers-cache/
